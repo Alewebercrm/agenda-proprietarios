@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Agenda de Proprietários</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f6f8;color:#111827;font-family:Arial,system-ui,sans-serif}.top{background:#111827;color:#fff;padding:16px 20px;font-weight:700;font-size:18px}.wrap{max-width:900px;margin:auto;padding:24px 16px}.hero{display:flex;justify-content:space-between;gap:15px;align-items:end;margin-bottom:18px}.hero h1{margin:0 0 6px;font-size:30px}.hero p{margin:0;color:#6b7280}.btn{border:0;border-radius:10px;padding:12px 15px;font-weight:700;cursor:pointer}.primary{background:#111827;color:white}.secondary{background:white;border:1px solid #d7dce3}.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}.stat{background:white;border:1px solid #e1e5ea;border-radius:12px;padding:14px}.stat span{color:#6b7280;font-size:13px}.stat strong{display:block;font-size:25px;margin-top:4px}.toolbar{display:flex;gap:8px;margin-bottom:15px}.search{flex:1;background:white;border:1px solid #d7dce3;border-radius:10px;padding:12px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}.card{background:#fff;border:1px solid #e1e5ea;border-radius:14px;padding:16px}.card h3{margin:0 0 4px}.muted{color:#6b7280;font-size:13px}.info{display:grid;gap:8px;margin:15px 0}.actions{display:flex;gap:7px;border-top:1px solid #eee;padding-top:12px}.actions .btn{flex:1}.empty{text-align:center;background:white;border:1px dashed #cbd2da;border-radius:14px;padding:45px 15px}.modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;padding:15px}.box{background:white;border-radius:16px;padding:20px;width:min(620px,100%)}.head{display:flex;justify-content:space-between}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}label{font-size:13px;font-weight:700}input{width:100%;margin-top:6px;padding:11px;border:1px solid #d7dce3;border-radius:9px;font-size:15px}.full{grid-column:1/-1}.formactions{display:flex;justify-content:end;gap:8px;margin-top:16px}.close{border:0;background:#eee;border-radius:50%;width:34px;height:34px;font-size:20px}.hidden{display:none}.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 16px;border-radius:9px;display:none}@media(max-width:700px){.hero{display:block}.hero .primary{width:100%;margin-top:15px}.cards{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.full{grid-column:auto}.toolbar{display:block}.toolbar .btn{margin-top:8px;width:100%}}
+</style>
+</head>
+<body>
+<div class="top">Agenda de Proprietários</div>
+<main class="wrap">
+<section class="hero"><div><h1>Seus proprietários em um só lugar.</h1><p>Nome, telefone, imóvel, valor e endereço.</p></div><button class="btn primary" onclick="openForm()">+ Novo proprietário</button></section>
+<section class="stats"><div class="stat"><span>Proprietários</span><strong id="total">0</strong></div><div class="stat"><span>Imóveis</span><strong id="props">0</strong></div></section>
+<div class="toolbar"><input class="search" id="search" placeholder="Buscar nome, imóvel ou endereço" oninput="render()"><button class="btn secondary" onclick="backup()">Backup</button><label class="btn secondary" style="display:block">Restaurar<input id="restore" type="file" accept=".json" style="display:none"></label></div>
+<section id="empty" class="empty"><h2>Nenhum proprietário cadastrado</h2><p>Cadastre o primeiro.</p><button class="btn primary" onclick="openForm()">Cadastrar proprietário</button></section>
+<section id="cards" class="cards"></section>
+</main>
+
+<div id="modal" class="modal hidden"><div class="box"><div class="head"><h2 id="title">Novo proprietário</h2><button class="close" onclick="closeForm()">×</button></div>
+<form onsubmit="saveForm(event)"><input id="id" type="hidden">
+<div class="grid"><label>Nome<input id="name" required></label><label>Telefone<input id="phone" required inputmode="tel"></label><label>Qual imóvel<input id="property" required></label><label>Valor<input id="value" required></label><label class="full">Endereço<input id="address" required></label></div>
+<div class="formactions"><button type="button" class="btn secondary" onclick="closeForm()">Cancelar</button><button class="btn primary">Salvar</button></div></form></div></div>
+<div id="toast" class="toast"></div>
+<script>
+const KEY='agenda_proprietarios_v1';let data=JSON.parse(localStorage.getItem(KEY)||'[]');
+const $=x=>document.getElementById(x);
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){let q=$('search').value.toLowerCase();let rows=data.filter(o=>[o.name,o.phone,o.property,o.value,o.address].join(' ').toLowerCase().includes(q));$('total').textContent=data.length;$('props').textContent=new Set(data.map(o=>o.property.toLowerCase())).size;$('empty').classList.toggle('hidden',data.length>0);$('cards').innerHTML=rows.map(o=>`<article class="card"><h3>${esc(o.name)}</h3><div class="muted">${esc(o.property)}</div><div class="info"><div>📞 ${esc(o.phone)}</div><div>💰 <b>${esc(o.value)}</b></div><div>📍 ${esc(o.address)}</div></div><div class="actions"><button class="btn secondary" onclick="whats('${o.id}')">WhatsApp</button><button class="btn secondary" onclick="edit('${o.id}')">Editar</button><button class="btn secondary" onclick="removeIt('${o.id}')">Excluir</button></div></article>`).join('')}
+function openForm(o=null){$('title').textContent=o?'Editar proprietário':'Novo proprietário';$('id').value=o?.id||'';$('name').value=o?.name||'';$('phone').value=o?.phone||'';$('property').value=o?.property||'';$('value').value=o?.value||'';$('address').value=o?.address||'';$('modal').classList.remove('hidden');$('name').focus()}
+function closeForm(){$('modal').classList.add('hidden')}
+function saveForm(e){e.preventDefault();let id=$('id').value||crypto.randomUUID(),o={id,name:$('name').value.trim(),phone:$('phone').value.trim(),property:$('property').value.trim(),value:$('value').value.trim(),address:$('address').value.trim()},i=data.findIndex(x=>x.id===id);if(i>=0)data[i]=o;else data.unshift(o);save();closeForm();show(i>=0?'Atualizado!':'Salvo!')}
+function edit(id){openForm(data.find(x=>x.id===id))}
+function removeIt(id){let o=data.find(x=>x.id===id);if(confirm('Excluir '+o.name+'?')){data=data.filter(x=>x.id!==id);save();show('Excluído!')}}
+function whats(id){let o=data.find(x=>x.id===id),n=o.phone.replace(/\D/g,'');if(n.length===10||n.length===11)n='55'+n;window.open('https://wa.me/'+n,'_blank')}
+function show(t){$('toast').textContent=t;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',1800)}
+function backup(){let b=new Blob([JSON.stringify({owners:data},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='backup-agenda.json';a.click()}
+$('restore').onchange=e=>{let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!Array.isArray(x.owners))throw 1;if(confirm('Restaurar '+x.owners.length+' cadastro(s)?')){data=x.owners;save();show('Restaurado!')}}catch{alert('Backup inválido.')}e.target.value=''};r.readAsText(f)}
+render();
+</script>
+</body></html>
